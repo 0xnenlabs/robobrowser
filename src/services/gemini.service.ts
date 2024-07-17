@@ -1,5 +1,5 @@
 import { env } from "../env";
-import { FunctionDeclaration, FunctionDeclarationsTool, GoogleGenerativeAI, Tool } from "@google/generative-ai";
+import { FunctionDeclaration, GoogleGenerativeAI } from "@google/generative-ai";
 // import Bottleneck from "bottleneck";
 
 const geminiClient = new GoogleGenerativeAI(env.GEMINI_API_KEY);
@@ -32,12 +32,18 @@ export class GeminiAIService {
     history,
     model,
     generationConfig,
-    tools
-  }: GeminiAIServiceConfig): Promise<string | Record<string, any>> {
+    tools,
+  }: GeminiAIServiceConfig): Promise<{
+    response: string;
+    functionCall: {
+      name: string;
+      args: Record<string, any>;
+    } | null;
+  }> {
     const gemini = this.geminiClient.getGenerativeModel({
       model,
       systemInstruction,
-      tools: [{ functionDeclarations: tools }]
+      tools: [{ functionDeclarations: tools }],
     });
 
     const runGemini = async () => {
@@ -50,12 +56,18 @@ export class GeminiAIService {
 
       const responseGemini = result.response;
 
+      const responseText = responseGemini.text();
       const functionCalls = responseGemini.functionCalls();
+      const functionCall =
+        functionCalls && functionCalls.length > 0 ? functionCalls[0] : null;
 
-      console.log("ANSWER", responseGemini.text());
-      console.log("FUNCTION CALLS", functionCalls);
+      console.log("TEXT RESPONSE", responseText);
+      console.log("FUNCTION CALLS", functionCall);
 
-      return responseGemini.text();
+      return {
+        response: responseText,
+        functionCall: functionCall,
+      };
     };
 
     // const wrappedGeminiCall = limiter.wrap(runGemini);
