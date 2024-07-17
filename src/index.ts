@@ -2,9 +2,39 @@ import puppeteer from "puppeteer";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { cleanHtml } from "./utils/html";
-import { go_to_url, click_on_element, input_text } from "./utils/browser_functions";
+import {
+  go_to_url,
+  click_on_element,
+  input_text,
+} from "./utils/browser_functions";
+import { GeminiAIService } from "./services/gemini.service";
+import { tools } from "./utils/browser_tools";
+import { FunctionDeclaration, Tool } from "@google/generative-ai";
 
 async function run(query: string) {
+  const gemini = new GeminiAIService();
+
+  // check if first call
+  // if first call, then pass in go to url tool and user query as user message
+  const firstCall = await gemini.callGemini({
+    systemInstruction:
+      "You are a helpful assistant that can answer questions and help with tasks. You have access to the internet and can use the internet to answer questions.",
+    userMessage: query,
+    history: [],
+    model: "gemini-1.5-pro-latest",
+    generationConfig: {
+      temperature: 0.1,
+    },
+    tools: tools.filter((tool) => tool.name === "go_to_url") as FunctionDeclaration[],
+  });
+
+  console.log(firstCall);
+
+  // wait for response
+  // if response was a function call then
+  // start loop,then call function, return cleaned html, and call model again with all the tools and the context
+  // loop this step
+  // if response is not function call, then print response and exit loop
   // Launch the browser
   const browser = await puppeteer.launch({ headless: false });
   let page = await browser.newPage();
@@ -22,8 +52,8 @@ async function run(query: string) {
   [page] = await click_on_element(page, "text=Google Search");
   console.log("Clicked the Search button");
 
-  // Wait for the search results to load
-  await page.waitForSelector("h3");
+  const cleanedHtml = cleanHtml(await page.content());
+  console.log(cleanedHtml);
 
   // Wait for 3 seconds
   await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -51,9 +81,6 @@ async function run(query: string) {
   links.forEach((link, index) => {
     console.log(`${index + 1}: ${link.title} - ${link.href}`);
   });
-
-  const cleanedHtml = cleanHtml(await page.content());
-  console.log(cleanedHtml);
 
   await browser.close();
 }
