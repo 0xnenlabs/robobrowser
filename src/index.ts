@@ -2,26 +2,24 @@ import puppeteer from "puppeteer";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { cleanHtml } from "./utils/html";
+import { go_to_url, click_on_element, input_text } from "./utils/browser_functions";
 
 async function run(query: string) {
-  // Launch the browser and open a new blank page
+  // Launch the browser
   const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
+  let page = await browser.newPage();
   console.log("Launched browser");
 
-  // Navigate the page to a URL.
-  await page.goto("https://google.com");
-
+  // Navigate to Google
+  [page] = await go_to_url(page, "https://google.com");
   console.log("Navigated to the Google page");
 
-  // Find the input field with the title "Search" and fill it with the query
-  await page.locator('textarea[title="Search"]').fill(query);
-
+  // Fill the search box with the query
+  [page] = await input_text(page, 'textarea[title="Search"]', query);
   console.log("Filled the search box");
 
-  // Click the button with the text "Google Search"
-  await page.locator("text=Google Search").click();
-
+  // Click the "Google Search" button
+  [page] = await click_on_element(page, "text=Google Search");
   console.log("Clicked the Search button");
 
   // Wait for the search results to load
