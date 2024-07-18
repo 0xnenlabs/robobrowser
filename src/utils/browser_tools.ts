@@ -2,7 +2,6 @@ import {
   FunctionDeclaration,
   FunctionDeclarationSchemaType,
 } from "@google/generative-ai";
-import { Page } from "puppeteer";
 import {
   clickOnElement,
   goToUrl,
@@ -62,7 +61,7 @@ export const tools: (FunctionDeclaration & { handler: Function })[] = [
   {
     name: "input_text",
     description:
-      "Inputs text into a specified element on the page and optionally hits Enter, then returns the page content.",
+      "Inputs text into a specified element on the page and optionally hits Enter to submit the inputted text.",
     parameters: {
       type: FunctionDeclarationSchemaType.OBJECT,
       properties: {
@@ -86,3 +85,38 @@ export const tools: (FunctionDeclaration & { handler: Function })[] = [
     handler: inputText,
   },
 ];
+
+export const anthropicTools = tools.map((tool) => ({
+  name: tool.name,
+  description: tool.description,
+  input_schema: {
+    ...tool.parameters,
+    type: tool.parameters!.type.toLowerCase(),
+    properties: Object.fromEntries(
+      Object.entries(tool.parameters!.properties).map(([key, value]) => [
+        key,
+        { ...value, type: value.type!.toLowerCase() },
+      ])
+    ),
+  },
+}));
+
+export const openAITools = tools.map((tool) => ({
+  type: "function",
+  function: {
+    name: tool.name,
+    description: tool.description,
+    parameters: {
+      ...tool.parameters,
+      type: tool.parameters!.type.toLowerCase(),
+      properties: Object.fromEntries(
+        Object.entries(tool.parameters!.properties).map(([key, value]) => [
+          key,
+          { ...value, type: value.type!.toLowerCase() },
+        ])
+      ),
+    },
+  },
+}));
+
+console.log(JSON.stringify(openAITools, null, 2));

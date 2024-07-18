@@ -47,7 +47,7 @@ export async function inputText({
     await element.type(text);
     if (hitEnter) {
       await element.press("Enter");
-      await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+      await page.waitForNavigation({ waitUntil: "networkidle2" });
     }
   }
   const content = await page.content();
